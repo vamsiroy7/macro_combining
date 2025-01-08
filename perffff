@@ -1,0 +1,56 @@
+%macro process_month(yyyymm);
+
+    /* Extract year and month */
+    %let year = %substr(&yyyymm, 1, 4);
+    %let month = %substr(&yyyymm, 5, 2);
+
+    /* Calculate the first and last dates of the month */
+    %let first_date = %sysfunc(inputn(&yyyymm01, yymmdd8.), date9.);
+    %let last_date = %sysfunc(intnx(month, "&first_date"d, 0, end), yymmddn8.);
+
+    %let first_date_num = %sysfunc(putn(&first_date, yymmddn8.));
+    %let last_date_num = %sysfunc(putn(&last_date, yymmddn8.));
+
+    /* Step 1: Initialize the final dataset */
+    data bd_perf;
+        set _null_;
+    run;
+
+    /* Step 2: Loop through all dates in the month and check for missing datasets */
+    %do i = &first_date_num %to &last_date_num;
+
+        /* Check if the dataset for the date exists */
+        %if %sysfunc(exist(bd.pl_initial_datapull_&i)) %then %do;
+            data temp;
+                set bd.pl_initial_datapull_&i;
+            run;
+
+            /* Append the current day's data to bd_perf */
+            proc append base=bd_perf data=temp force;
+            run;
+        %end;
+        %else %do;
+            /* Log missing datasets */
+            %put WARNING: Dataset bd.pl_initial_datapull_&i does not exist!;
+        %end;
+
+    %end;
+
+    /* Step 3: Sort the combined dataset */
+    proc sort data=bd_perf;
+        by loan_sid date_id;
+    run;
+
+    /* Step 4: Keep only the last record for each loan_sid */
+    data bd_perf_final_&yyyymm;
+        set bd_perf;
+        by loan_sid date_id;
+        if last.loan_sid;
+    run;
+
+    %put NOTE: Final dataset bd_perf_final_&yyyymm has been created successfully!;
+
+%mend process_month;
+
+/* Example Usage */
+%process_month(202405);
