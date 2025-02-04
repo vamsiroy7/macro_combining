@@ -11,23 +11,27 @@
     %do i = 1 %to &n;
         %let var = %scan(&indep_vars, &i); /* Extract each variable */
 
-        proc logistic data=&data descending outest=coef_out noprint;
+        proc logistic data=&data descending;
             model &dep_var = &var;
-            output out=pred p=predicted;
+            ods output ParameterEstimates=param_out; /* Capture parameter estimates */
         run;
 
         /* Extract coefficients */
-        data coef_out;
-            set coef_out;
-            length Variable $50.;
-            Variable = "&var";
-            Intercept = Intercept;
-            Coefficient = &var;
-            keep Variable Intercept Coefficient;
+        data param_out;
+            set param_out;
+            if Variable = "Intercept" then do;
+                Intercept = Estimate;
+                Coefficient = .;
+            end;
+            else do;
+                Coefficient = Estimate;
+            end;
+            keep Variable Intercept Coefficient StandardError ProbChiSq;
+            rename ProbChiSq = PValue;
         run;
 
         /* Append results */
-        proc append base=coef_results data=coef_out force;
+        proc append base=coef_results data=param_out force;
         run;
     %end;
 
