@@ -1,0 +1,58 @@
+import pandas as pd
+
+# Given final performance results (replace with actual table)
+performance_results = pd.DataFrame({
+    "Predictor": ["DAYS_CO", "POSTCO_IC_60", "PAYMENT_CNT_360", "PAYMENT_AMT_360",
+                  "DAYS_LASTPAY_POSTCO", "Days_Since_Lastpay_preco_New", "MOB_CO", "BALANCE"],
+    "KS": [0.300924, 0.275046, 0.266866, 0.266866, 0.224247, 0.214954, 0.186490, 0.154177],
+    "AUC": [0.686693, 0.642913, 0.669320, 0.653094, 0.627693, 0.609915, 0.630638, 0.588304],
+    "Total Count": [226050] * 8
+})
+
+# Sort by KS in descending order
+performance_results = performance_results.sort_values(by="KS", ascending=False)
+
+# Initialize variables
+selected_vars = []
+model_performance = []
+
+# Iteratively build model by adding variables in order of KS
+for i in range(len(performance_results)):
+    # Add next highest KS predictor
+    selected_vars.append(performance_results.iloc[i]["Predictor"])
+    print(f"\nBuilding model with variables: {selected_vars}")
+
+    # Run model with current selected variables
+    builder.start_build(varlist=selected_vars, predecessor=version)
+    builder.finalize_binning(n=1)
+    builder.show_neutral_bins()
+    builder.monotonic_adj.get_trends(use_woe=True)
+
+    # Check performance
+    perf = builder.check_perf(dev_data, 'perf_ind', samplelvl=population)
+
+    # Extract KS, AUC, and Total Count
+    ks = perf.iloc[0, 2]  # Assuming KS is in 3rd column
+    auc = perf.iloc[0, 3]  # Assuming AUC is in 4th column
+    total_count = perf.iloc[0, 4]  # Assuming Total Count is in 5th column
+
+    # Store performance results
+    model_performance.append({
+        "Selected Variables": ", ".join(selected_vars),
+        "KS": ks,
+        "AUC": auc,
+        "Total Count": total_count
+    })
+
+    # Print results
+    print(f"Current Model Performance: KS={ks}, AUC={auc}, Total Count={total_count}")
+
+# Convert results to DataFrame
+model_performance_df = pd.DataFrame(model_performance)
+
+# Display final results
+print("\nFinal Iterative Model Performance:")
+display(model_performance_df)
+
+# Save to CSV if needed
+model_performance_df.to_csv("iterative_model_performance.csv", index=False)
