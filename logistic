@@ -1,0 +1,41 @@
+%macro run_logistic_each(data=, dep_var=, indep_vars=);
+
+    /* Create an empty dataset to store results */
+    data coef_results;
+        length Variable $50. Intercept Coefficient StandardError PValue 8.;
+        stop;
+    run;
+
+    %let n = %sysfunc(countw(&indep_vars)); /* Count number of independent variables */
+
+    %do i = 1 %to &n;
+        %let var = %scan(&indep_vars, &i); /* Extract each variable */
+
+        proc logistic data=&data descending outest=coef_out noprint;
+            model &dep_var = &var;
+            output out=pred p=predicted;
+        run;
+
+        /* Extract coefficients */
+        data coef_out;
+            set coef_out;
+            length Variable $50.;
+            Variable = "&var";
+            Intercept = Intercept;
+            Coefficient = &var;
+            keep Variable Intercept Coefficient;
+        run;
+
+        /* Append results */
+        proc append base=coef_results data=coef_out force;
+        run;
+    %end;
+
+    /* Display results */
+    proc print data=coef_results; 
+    run;
+
+%mend run_logistic_each;
+
+/* Example usage */
+%run_logistic_each(data=mydata, dep_var=default_flag, indep_vars=balance income age);
