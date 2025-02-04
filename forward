@@ -1,0 +1,35 @@
+# Define the list of predictors
+predictors = ['BALANCE', 'DAYS_CO', 'DAYS_LASTPAY_POSTCO', 
+              'Days_Since_Lastpay_preco_New', 'MOB_CO', 
+              'PAYMENT_AMT_360', 'PAYMENT_CNT_360', 'POSTCO_IC_60']
+
+# Dictionary to store performance results
+performance_results = {}
+
+# Iterate over each predictor
+for predictor in predictors:
+    print(f"Running model for predictor: {predictor}")
+    
+    # Start model build with the single predictor
+    builder.start_build(varlist=[predictor], predecessor=version)
+
+    # Lock the binning and create model object
+    builder.finalize_binning(n=1)
+
+    # Normalize and get neutral bins
+    builder.show_neutral_bins()
+
+    # Do monotonic trend adjustments
+    builder.monotonic_adj.get_trends(use_woe=True)
+
+    # Run performance check
+    performance = builder.check_perf(dev_data, 'perf_ind', samplelvl=population)
+    
+    # Store performance results
+    performance_results[predictor] = performance
+    print(f"Performance for {predictor}: {performance}\n")
+
+# Print final results
+print("\nFinal Performance Results:")
+for predictor, perf in performance_results.items():
+    print(f"{predictor}: {perf}")
