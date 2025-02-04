@@ -1,0 +1,48 @@
+import pandas as pd
+
+# Define the list of predictors
+predictors = ['BALANCE', 'DAYS_CO', 'DAYS_LASTPAY_POSTCO', 
+              'Days_Since_Lastpay_preco_New', 'MOB_CO', 
+              'PAYMENT_AMT_360', 'PAYMENT_CNT_360', 'POSTCO_IC_60']
+
+# Create an empty DataFrame to store results
+performance_results = pd.DataFrame(columns=["Predictor", "KS", "AUC", "Total Count"])
+
+# Iterate over each predictor
+for predictor in predictors:
+    print(f"Running model for predictor: {predictor}")
+    
+    # Start model build with the single predictor
+    builder.start_build(varlist=[predictor], predecessor=version)
+
+    # Lock the binning and create model object
+    builder.finalize_binning(n=1)
+
+    # Normalize and get neutral bins
+    builder.show_neutral_bins()
+
+    # Do monotonic trend adjustments
+    builder.monotonic_adj.get_trends(use_woe=True)
+
+    # Run performance check
+    performance = builder.check_perf(dev_data, 'perf_ind', samplelvl=population)
+
+    # Extract KS, AUC, and Total Count
+    ks = performance.iloc[0, 2]  # Assuming KS is in 3rd column
+    auc = performance.iloc[0, 3]  # Assuming AUC is in 4th column
+    total_count = performance.iloc[0, 4]  # Assuming Total Count is in 5th column
+
+    # Append results to DataFrame
+    performance_results = performance_results.append(
+        {"Predictor": predictor, "KS": ks, "AUC": auc, "Total Count": total_count},
+        ignore_index=True
+    )
+
+    print(f"Performance for {predictor}: KS={ks}, AUC={auc}, Total Count={total_count}\n")
+
+# Display final results
+print("\nFinal Performance Results:")
+print(performance_results)
+
+# Save to CSV if needed
+performance_results.to_csv("performance_results.csv", index=False)
