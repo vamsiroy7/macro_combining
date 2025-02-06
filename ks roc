@@ -1,0 +1,54 @@
+import numpy as np
+import pandas as pd
+from sklearn.metrics import roc_auc_score
+
+def ks_cumulative(score, default_flag):
+    """
+    Computes the KS statistic using the cumulative distribution method.
+    
+    Parameters:
+    score (array-like): The predicted scores or probabilities.
+    default_flag (array-like): The actual default flags (1 for bad, 0 for good).
+
+    Returns:
+    float: KS statistic value.
+    """
+    df = pd.DataFrame({'score': score, 'default_flag': default_flag})
+    df = df.sort_values(by="score", ascending=True)  # Sort scores (ascending for credit risk)
+    
+    # Compute cumulative distributions
+    df['good'] = (df['default_flag'] == 0).astype(int)
+    df['bad'] = (df['default_flag'] == 1).astype(int)
+    
+    df['cum_good'] = df['good'].cumsum() / df['good'].sum()
+    df['cum_bad'] = df['bad'].cumsum() / df['bad'].sum()
+
+    # Compute KS statistic (max difference)
+    ks_value = np.max(np.abs(df['cum_good'] - df['cum_bad']))
+    return ks_value
+
+def roc_auc(score, default_flag):
+    """
+    Computes the ROC-AUC score.
+
+    Parameters:
+    score (array-like): The predicted scores or probabilities.
+    default_flag (array-like): The actual default flags (1 for bad, 0 for good).
+
+    Returns:
+    float: ROC AUC score.
+    """
+    return roc_auc_score(default_flag, score)
+
+# Example usage with synthetic data
+np.random.seed(42)
+num_samples = 1000
+score = np.random.normal(loc=600, scale=50, size=num_samples)  # Simulated scores
+default_flag = np.random.choice([0, 1], size=num_samples, p=[0.8, 0.2])  # 20% defaults
+
+# Compute KS and AUC
+ks_value = ks_cumulative(score, default_flag)
+roc_value = roc_auc(score, default_flag)
+
+print(f"KS Value: {ks_value:.4f}")
+print(f"ROC-AUC Value: {roc_value:.4f}")
