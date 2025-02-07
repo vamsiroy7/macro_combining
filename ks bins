@@ -1,0 +1,44 @@
+def calculate_ks_table_with_ranges(score, default_flag, bins=10):
+    """
+    Calculates the KS table using the decile method with score ranges.
+
+    Parameters:
+    score (array-like): Array of score values.
+    default_flag (array-like): Array of default flags (1 for default, 0 for non-default).
+    bins (int): Number of quantile bins (default is 10 for deciles).
+
+    Returns:
+    pd.DataFrame: KS calculation table with score ranges.
+    """
+    # Create DataFrame
+    df = pd.DataFrame({'score': score, 'default_flag': default_flag})
+
+    # Create score bins (deciles)
+    df['score_range'], bins = pd.qcut(df['score'], q=bins, retbins=True, duplicates='drop')
+
+    # Aggregate counts for each score range
+    grouped = df.groupby('score_range').agg(
+        non_defaults=('default_flag', lambda x: (x == 0).sum()),
+        defaults=('default_flag', lambda x: (x == 1).sum())
+    ).reset_index()
+
+    # Cumulative percentages
+    grouped['cum_non_defaults'] = grouped['non_defaults'].cumsum() / grouped['non_defaults'].sum()
+    grouped['cum_defaults'] = grouped['defaults'].cumsum() / grouped['defaults'].sum()
+
+    # KS calculation
+    grouped['ks'] = abs(grouped['cum_non_defaults'] - grouped['cum_defaults'])
+
+    return grouped
+
+# Generate sample data
+np.random.seed(42)
+n = 1000
+score = np.random.uniform(300, 850, n)  # Simulated credit scores
+default_flag = np.random.choice([0, 1], size=n, p=[0.85, 0.15])  # 15% default rate
+
+# Compute KS table with score ranges
+ks_table_with_ranges = calculate_ks_table_with_ranges(score, default_flag)
+
+# Display KS table as output
+ks_table_with_ranges
